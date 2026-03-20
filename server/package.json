@@ -1,0 +1,36 @@
+{
+  "name": "ai-agent-usvsst-server",
+  "version": "1.0.0",
+  "description": "Genkit Backend for the AI Agent USVSST",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "test": "vitest run"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@genkit-ai/core": "^1.30.1",
+    "@genkit-ai/googleai": "^1.28.0",
+    "@pinecone-database/pinecone": "^7.1.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "genkit": "^1.30.1",
+    "rss-parser": "^3.13.0",
+    "twitter-api-v2": "^1.29.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
