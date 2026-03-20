@@ -1,36 +1,50 @@
-export const pipelineStages = [
-  { stage: 'Filed', count: 42, value: 1250000000 },
-  { stage: 'Seized', count: 35, value: 980000000 },
-  { stage: 'Litigation', count: 28, value: 810000000 },
-  { stage: 'Forfeiture Ordered', count: 21, value: 650000000 },
-  { stage: 'Liquidation', count: 18, value: 580000000 },
-  { stage: 'Treasury Transfer', count: 14, value: 430000000 },
-  { stage: 'USVSST Deposit', count: 11, value: 310000000 },
-  { stage: 'Distributed', count: 5, value: 150000000 },
+// Pipeline stage definitions — order matters for the funnel chart
+export const PIPELINE_STAGES = [
+  'Filed', 'Seized', 'Litigation', 'Forfeiture Ordered', 
+  'Liquidation', 'Treasury Transfer', 'USVSST Deposit', 'Distributed'
 ];
 
-export const casesData = [
-  { id: '1:24-cv-00123', name: 'US v. North Korean Crypto Assets', category: 'Crypto/Sanctions', stage: 'Litigation', seizedValue: 42500000, lastVerified: '2 hours ago', source: 'DOJ Press Release' },
-  { id: '1:23-cr-00991', name: 'US v. Iranian Oil Tanker Fnd.', category: 'State Sponsor', stage: 'Liquidation', seizedValue: 112000000, lastVerified: '1 day ago', source: 'PACER' },
-  { id: '1:25-cv-00044', name: 'US v. Al-Qaeda Linked Accounts', category: 'Terrorism', stage: 'Seized', seizedValue: 18300000, lastVerified: '4 hours ago', source: 'Treasury OFAC' },
-  { id: '1:22-cr-00102', name: 'US v. Syrian Front Company', category: 'State Sponsor', stage: 'Forfeiture Ordered', seizedValue: 84100000, lastVerified: '3 days ago', source: 'DOJ AFP File' },
-  { id: '1:24-cv-00551', name: 'US v. Hezbollah Shell Corps', category: 'Terrorism', stage: 'Filed', seizedValue: 27000000, lastVerified: '1 week ago', source: 'FBI IC3' },
-  { id: '1:21-cv-00442', name: 'US v. Russian Cyber Network', category: 'Sanctions', stage: 'Treasury Transfer', seizedValue: 9800000, lastVerified: '12 hours ago', source: 'TFF Report' },
-];
+// Late-stage thresholds for the USVSST impact calculation
+export const USVSST_STAGES = ['Treasury Transfer', 'USVSST Deposit', 'Distributed'];
 
-// Compute metrics from actual pipeline data so numbers always add up
-const totalSeizedRaw = pipelineStages.reduce((sum, s) => sum + s.value, 0);
-const activeCasesCount = pipelineStages.reduce((sum, s) => sum + s.count, 0);
-const usvsStages = ['Treasury Transfer', 'USVSST Deposit', 'Distributed'];
-const projectedUSVSSTRaw = pipelineStages
-  .filter(s => usvsStages.includes(s.stage))
-  .reduce((sum, s) => sum + s.value, 0);
+/**
+ * Compute pipeline chart data from live cases.
+ * Groups cases by stage, aggregates value and count.
+ */
+export function computePipelineStages(cases) {
+  const grouped = {};
+  for (const stage of PIPELINE_STAGES) {
+    grouped[stage] = { stage, count: 0, value: 0 };
+  }
+  for (const c of cases) {
+    if (grouped[c.stage]) {
+      grouped[c.stage].count += 1;
+      grouped[c.stage].value += (typeof c.seizedValue === 'number' ? c.seizedValue : 0);
+    }
+  }
+  return PIPELINE_STAGES.map(s => grouped[s]);
+}
 
-const formatBillions = (val) => `$${(val / 1000000000).toFixed(1)}B`;
+/**
+ * Compute dashboard metrics from live cases.
+ */
+export function computeMetrics(cases) {
+  const totalSeized = cases.reduce((sum, c) => sum + (typeof c.seizedValue === 'number' ? c.seizedValue : 0), 0);
+  const projected = cases
+    .filter(c => USVSST_STAGES.includes(c.stage))
+    .reduce((sum, c) => sum + (typeof c.seizedValue === 'number' ? c.seizedValue : 0), 0);
 
-export const totalMetrics = {
-  activeCases: activeCasesCount,
-  totalSeized: formatBillions(totalSeizedRaw),
-  projectedUSVSST: formatBillions(projectedUSVSSTRaw),
-  lastUpdate: new Date().toLocaleDateString()
-};
+  const fmt = (val) => {
+    if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(1)}B`;
+    if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(0)}M`;
+    if (val > 0) return `$${val.toLocaleString()}`;
+    return '$0';
+  };
+
+  return {
+    activeCases: cases.length,
+    totalSeized: fmt(totalSeized),
+    projectedUSVSST: fmt(projected),
+    lastUpdate: new Date().toLocaleDateString()
+  };
+}

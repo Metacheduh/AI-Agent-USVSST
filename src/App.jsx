@@ -2,7 +2,6 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { 
   LayoutDashboard, Database, Activity, FileText, ShieldCheck, Mail, Bell, MessageCircle
 } from 'lucide-react';
-import { casesData } from './data/mockData';
 import html2pdf from 'html2pdf.js';
 import './index.css';
 
@@ -29,7 +28,7 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
   const [generatedContent, setGeneratedContent] = useState(null);
-  const [liveCases, setLiveCases] = useState(casesData);
+  const [liveCases, setLiveCases] = useState([]);
   const [selectedContentInfo, setSelectedContentInfo] = useState(null);
 
   const handlePdfDownload = () => {

@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
 } from 'recharts';
-import { Activity, Database, Gavel, ShieldCheck, ChevronDown, X } from 'lucide-react';
-import { pipelineStages, totalMetrics } from '../data/mockData';
+import { Activity, Database, Gavel, ShieldCheck, ChevronDown, X, AlertTriangle } from 'lucide-react';
+import { computePipelineStages, computeMetrics, PIPELINE_STAGES } from '../data/mockData';
 
 function MetricCard({ title, value, subtitle, highlight }) {
   return (
@@ -15,8 +15,52 @@ function MetricCard({ title, value, subtitle, highlight }) {
   );
 }
 
+function EmptyState({ onGovWatchTrigger, isScraping }) {
+  return (
+    <div style={{ 
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: '4rem 2rem', textAlign: 'center', gap: '1.5rem'
+    }}>
+      <div style={{ 
+        width: '64px', height: '64px', borderRadius: '50%', 
+        backgroundColor: 'var(--bg-surface-hover)', border: '1px solid var(--border-highlight)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }}>
+        <AlertTriangle size={28} color="var(--text-tertiary)" />
+      </div>
+      <div>
+        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 500, color: 'var(--text-primary)' }}>
+          No Live Intelligence Data
+        </h3>
+        <p style={{ margin: '0.75rem 0 0', color: 'var(--text-secondary)', maxWidth: '480px', lineHeight: 1.6 }}>
+          The dashboard is connected to your backend pipeline. Run a live web scrape to pull verified federal
+          forfeiture data from DOJ, PACER, Treasury OFAC, and other Tier-1 sources.
+        </p>
+      </div>
+      <button 
+        onClick={onGovWatchTrigger}
+        disabled={isScraping}
+        style={{ 
+          background: isScraping ? 'var(--bg-surface-hover)' : 'var(--accent-blue)', 
+          color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '6px', 
+          cursor: isScraping ? 'wait' : 'pointer', fontSize: '0.9rem', fontWeight: 600, 
+          display: 'flex', alignItems: 'center', gap: '0.5rem'
+        }}>
+        <Database size={16} /> {isScraping ? 'GovWatch Scanning...' : 'Run Live Web Scrape (ADK)'}
+      </button>
+      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+        Requires backend server running on port 3000
+      </p>
+    </div>
+  );
+}
+
 export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) {
   const [selectedStage, setSelectedStage] = useState(null);
+
+  // Compute pipeline stages and metrics from live data
+  const pipelineStages = useMemo(() => computePipelineStages(liveCases), [liveCases]);
+  const metrics = useMemo(() => computeMetrics(liveCases), [liveCases]);
 
   // Group cases by pipeline stage for the drill-down
   const casesByStage = useMemo(() => {
@@ -37,17 +81,34 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
   };
 
   const selectedCases = selectedStage ? (casesByStage[selectedStage] || []) : [];
-  const stageIndex = pipelineStages.findIndex(s => s.stage === selectedStage);
+  const stageIndex = PIPELINE_STAGES.indexOf(selectedStage);
   const isGreenStage = stageIndex > 4;
+
+  // Show empty state when no live cases exist
+  if (liveCases.length === 0) {
+    return (
+      <main style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        {/* Metrics Row — show zeros */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+          <MetricCard title="Total Monitored Assets" value="$0" subtitle="0 Active Cases" />
+          <MetricCard title="Projected USVSST Impact" value="$0" subtitle="No pipeline data yet" highlight />
+          <MetricCard title="Data Freshness" value="—" subtitle="Awaiting first scrape" />
+        </div>
+        <div className="panel">
+          <EmptyState onGovWatchTrigger={onGovWatchTrigger} isScraping={isScraping} />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
       {/* Metrics Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
-        <MetricCard title="Total Monitored Assets" value={totalMetrics.totalSeized} subtitle={`${totalMetrics.activeCases} Active Cases`} />
-        <MetricCard title="Projected USVSST Impact" value={totalMetrics.projectedUSVSST} subtitle="Based on late-stage pipeline" highlight />
-        <MetricCard title="Data Freshness" value={totalMetrics.lastUpdate} subtitle="15 Tier-1 Sources Parsed" />
+        <MetricCard title="Total Monitored Assets" value={metrics.totalSeized} subtitle={`${metrics.activeCases} Active Cases`} />
+        <MetricCard title="Projected USVSST Impact" value={metrics.projectedUSVSST} subtitle="Based on late-stage pipeline" highlight />
+        <MetricCard title="Data Freshness" value={metrics.lastUpdate} subtitle="15 Tier-1 Sources Parsed" />
       </div>
 
       {/* Pipeline Chart */}
@@ -76,7 +137,7 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
                 formatter={(value, name, props) => {
                   const stage = props.payload.stage;
                   const cases = casesByStage[stage] || [];
-                  return [`$${(value / 1000000).toFixed(1)}M (${cases.length} tracked case${cases.length !== 1 ? 's' : ''})`, 'Asset Value'];
+                  return [`$${(value / 1000000).toFixed(1)}M (${cases.length} case${cases.length !== 1 ? 's' : ''})`, 'Asset Value'];
                 }}
               />
               <Bar dataKey="value" fill="var(--accent-blue)" radius={[4, 4, 0, 0]}>
@@ -107,7 +168,7 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
                 <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
                   <span style={{ color: isGreenStage ? 'var(--status-success)' : 'var(--accent-blue)' }}>{selectedStage}</span>
                   <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, marginLeft: '0.5rem' }}>
-                    — {selectedCases.length} tracked case{selectedCases.length !== 1 ? 's' : ''}
+                    — {selectedCases.length} case{selectedCases.length !== 1 ? 's' : ''}
                   </span>
                 </h4>
               </div>
@@ -143,8 +204,7 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
-                <p style={{ margin: 0 }}>No individually tracked cases in the <strong>{selectedStage}</strong> stage yet.</p>
-                <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem' }}>The aggregate total of ${(pipelineStages.find(s => s.stage === selectedStage)?.value / 1000000).toFixed(0)}M represents {pipelineStages.find(s => s.stage === selectedStage)?.count} cases from all monitored sources.</p>
+                <p style={{ margin: 0 }}>No cases in the <strong>{selectedStage}</strong> stage.</p>
               </div>
             )}
           </div>
@@ -162,7 +222,7 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
               onClick={onGovWatchTrigger}
               disabled={isScraping}
               style={{ background: isScraping ? 'var(--bg-surface-hover)' : 'var(--accent-blue)', color: 'white', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: isScraping ? 'wait' : 'pointer', fontSize: '0.8rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Database size={14} /> {isScraping ? 'GovWatch Scanning In Real Time...' : 'Force Live Web Scrape (ADK)'}
+              <Database size={14} /> {isScraping ? 'GovWatch Scanning...' : 'Force Live Web Scrape (ADK)'}
             </button>
           </div>
         </div>
@@ -179,7 +239,7 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
             </thead>
             <tbody>
               {liveCases.map((c, idx) => (
-                <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s ease', backgroundColor: c.source.includes('Live Pipeline') ? 'rgba(78, 171, 245, 0.05)' : 'transparent' }}>
+                <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s ease' }}>
                   <td style={{ padding: '1rem 0' }}>
                     <div style={{ fontWeight: 500 }}>{c.id}</div>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{c.name}</div>
@@ -197,7 +257,7 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
                   </td>
                   <td style={{ padding: '1rem 0' }}>
                     <div className="flex items-center gap-2">
-                      <span style={{ color: c.source.includes('Live') ? 'var(--accent-blue)' : 'var(--status-success)', display: 'flex', alignItems: 'center' }}><ShieldCheck size={14} /></span>
+                      <span style={{ color: 'var(--status-success)', display: 'flex', alignItems: 'center' }}><ShieldCheck size={14} /></span>
                       <div>
                         <div style={{ fontWeight: 500, fontSize: '0.85rem' }}>{c.source}</div>
                         <div style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>{c.lastVerified}</div>

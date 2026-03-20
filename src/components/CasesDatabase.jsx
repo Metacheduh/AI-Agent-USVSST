@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Database } from 'lucide-react';
 
 export default function CasesDatabase({ liveCases }) {
   return (
@@ -11,6 +11,15 @@ export default function CasesDatabase({ liveCases }) {
         </div>
       </div>
       <div className="panel" style={{ overflowX: 'auto', minHeight: '500px' }}>
+        {liveCases.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+            <Database size={40} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>No Cases in Database</h3>
+            <p style={{ margin: '0.75rem 0 0', maxWidth: '400px', lineHeight: 1.6, fontSize: '0.9rem' }}>
+              Cases are populated from the live GovWatch pipeline. Run a web scrape from the Dashboard to pull verified federal data.
+            </p>
+          </div>
+        ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-tertiary)' }}>
@@ -44,6 +53,7 @@ export default function CasesDatabase({ liveCases }) {
             ))}
           </tbody>
         </table>
+        )}
       </div>
     </main>
   );
