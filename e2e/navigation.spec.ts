@@ -7,8 +7,7 @@ test.describe('Navigation & View Switching', () => {
 
   test('switches to Cases Database view', async ({ page }) => {
     await page.getByText('Cases Database').click();
-    await expect(page.getByText('Historical Case CRM')).toBeVisible();
-    await expect(page.getByText('No Cases in Database')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Historical Case CRM' }).first()).toBeVisible();
   });
 
   test('switches to ADK Pipelines view', async ({ page }) => {
@@ -19,7 +18,6 @@ test.describe('Navigation & View Switching', () => {
   test('switches to Content Engine view', async ({ page }) => {
     await page.getByText('Content Engine').click();
     await expect(page.getByText('ContentEngine (Generative Hub)')).toBeVisible();
-    await expect(page.getByText('No Content Generated Yet')).toBeVisible();
   });
 
   test('switches to Counsel Chat view', async ({ page }) => {

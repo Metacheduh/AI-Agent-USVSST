@@ -55,6 +55,13 @@ function EmptyState({ onGovWatchTrigger, isScraping }) {
   );
 }
 
+const ELIGIBILITY_COLORS = {
+  High: '#22c55e',
+  Medium: '#eab308',
+  Low: '#f97316',
+  Unlikely: '#6b7280'
+};
+
 export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) {
   const [selectedStage, setSelectedStage] = useState(null);
 
@@ -197,7 +204,11 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
                     <div className="flex items-center justify-between" style={{ marginTop: '0.25rem' }}>
                       <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', padding: '0.1rem 0.4rem', border: '1px solid var(--border-color)', borderRadius: '4px' }}>{c.category}</span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{c.source}</span>
+                      {c.usvsst_eligibility && (
+                        <span title={c.eligibilityReason || ''} style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: '10px', color: '#fff', backgroundColor: ELIGIBILITY_COLORS[c.usvsst_eligibility] || '#6b7280' }}>
+                          {c.usvsst_eligibility}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -234,6 +245,7 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
                 <th style={{ padding: '1rem 0', fontWeight: 500 }}>Category</th>
                 <th style={{ padding: '1rem 0', fontWeight: 500 }}>Stage</th>
                 <th style={{ padding: '1rem 0', fontWeight: 500 }}>Seized Value</th>
+                <th style={{ padding: '1rem 0', fontWeight: 500 }}>USVSST Eligibility</th>
                 <th style={{ padding: '1rem 0', fontWeight: 500 }}>Data Source (Verified)</th>
               </tr>
             </thead>
@@ -254,6 +266,18 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
                   </td>
                   <td className="data-value" style={{ padding: '1rem 0' }}>
                      {typeof c.seizedValue === 'number' ? `$${(c.seizedValue / 1000000).toFixed(1)}M` : c.seizedValue}
+                  </td>
+                  <td style={{ padding: '1rem 0' }}>
+                    {c.usvsst_eligibility ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                        <span style={{ display: 'inline-block', width: 'fit-content', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '12px', color: '#fff', backgroundColor: ELIGIBILITY_COLORS[c.usvsst_eligibility] || '#6b7280' }}>
+                          {c.usvsst_eligibility}
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', maxWidth: '200px' }}>{c.eligibilityReason}</span>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>—</span>
+                    )}
                   </td>
                   <td style={{ padding: '1rem 0' }}>
                     <div className="flex items-center gap-2">

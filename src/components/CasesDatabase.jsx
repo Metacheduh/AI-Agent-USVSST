@@ -27,7 +27,7 @@ export default function CasesDatabase({ liveCases }) {
               <th style={{ padding: '1rem 0', fontWeight: 500 }}>Category</th>
               <th style={{ padding: '1rem 0', fontWeight: 500 }}>Current Stage</th>
               <th style={{ padding: '1rem 0', fontWeight: 500 }}>Identified Value</th>
-              <th style={{ padding: '1rem 0', fontWeight: 500 }}>ADK Assignment</th>
+              <th style={{ padding: '1rem 0', fontWeight: 500 }}>USVSST Eligibility</th>
             </tr>
           </thead>
           <tbody>
@@ -47,7 +47,16 @@ export default function CasesDatabase({ liveCases }) {
                     {typeof c.seizedValue === 'number' ? `$${(c.seizedValue / 1000000).toFixed(1)}M` : c.seizedValue}
                 </td>
                 <td style={{ padding: '1rem 0' }}>
-                   <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem', padding: '0.2rem 0.4rem', border: '1px solid var(--border-highlight)' }}>Agent IntelScout</span>
+                  {c.usvsst_eligibility ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ display: 'inline-block', width: 'fit-content', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '12px', color: '#fff', backgroundColor: { High: '#22c55e', Medium: '#eab308', Low: '#f97316', Unlikely: '#6b7280' }[c.usvsst_eligibility] || '#6b7280' }}>
+                        {c.usvsst_eligibility}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', maxWidth: '220px' }}>{c.eligibilityReason}</span>
+                    </div>
+                  ) : (
+                    <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem', padding: '0.2rem 0.4rem', border: '1px solid var(--border-highlight)' }}>Agent IntelScout</span>
+                  )}
                 </td>
               </tr>
             ))}

@@ -17,7 +17,9 @@ export const ForfeitureExtractionSchema = z.object({
   docketNumber: z.string().optional(),
   seizedValue: z.number().describe('The strict dollar value of the seized asset. No commas.'),
   stage: z.enum(['Filed', 'Seized', 'Litigation', 'Forfeiture Ordered', 'Liquidation', 'Treasury Transfer', 'USVSST Deposit', 'Distributed']),
-  category: z.string()
+  category: z.string(),
+  usvsst_eligibility: z.enum(['High', 'Medium', 'Low', 'Unlikely']).describe('Likelihood this case\'s forfeited assets will reach the USVSST Fund'),
+  eligibilityReason: z.string().describe('One-sentence legal justification for the eligibility score')
 });
 
 /**
@@ -42,6 +44,25 @@ export const intelscoutExtractionFlow = ai.defineFlow(
     const initialResponse = await ai.generate({
       prompt: `Extract the factual data from this DOJ text into the required JSON schema. 
                Only extract explicit facts. Do not guess.
+               
+               USVSST ELIGIBILITY SCORING RULES:
+               You MUST assign a usvsst_eligibility score and eligibilityReason based on these legal criteria:
+               
+               HIGH: The case explicitly involves a designated state sponsor of terrorism (Iran, North Korea, Syria, Sudan)
+                     OR a designated terrorist organization (Al-Qaeda, Hezbollah, ISIS, Hamas, Taliban) AND assets are in
+                     Forfeiture Ordered stage or later. The DOJ National Security Division or OFAC is involved.
+               
+               MEDIUM: The case involves terrorism financing, sanctions violations with a terrorism nexus, or
+                       designated entities, BUT assets are still in early stages (Filed, Seized, Litigation).
+                       OR the case is in late stages but the terrorism nexus is indirect.
+               
+               LOW: The case involves sanctions violations without a clear terrorism nexus. It may involve
+                    financial crimes or money laundering for sanctioned governments, but not explicitly linked
+                    to terrorist acts or designated terrorist organizations.
+               
+               UNLIKELY: The case is a general forfeiture (drugs, fraud, tax) with no terrorism or
+                         state-sponsor-of-terrorism connection. These assets are directed to other funds.
+               
                Text: "${rawText}"`,
       output: { schema: ForfeitureExtractionSchema }
     });
