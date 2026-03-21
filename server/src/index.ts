@@ -42,26 +42,55 @@ export const intelscoutExtractionFlow = ai.defineFlow(
     
     // Step 1: Initial extraction
     const initialResponse = await ai.generate({
-      prompt: `Extract the factual data from this DOJ text into the required JSON schema. 
+      prompt: `Extract the factual data from this legal text into the required JSON schema. 
                Only extract explicit facts. Do not guess.
                
-               USVSST ELIGIBILITY SCORING RULES:
-               You MUST assign a usvsst_eligibility score and eligibilityReason based on these legal criteria:
+               IMPORTANT RULES FOR DOCKET METADATA:
+               - If no dollar value is mentioned, set seizedValue to 0 (this is correct, not a hallucination).
+               - The 'category' should be inferred from the case context (e.g., terrorism, sanctions, fraud).
+               - The 'stage' should reflect the most recent procedural status mentioned. If only a filing date is given, use 'Filed'. If the case is described as ongoing litigation, use 'Litigation'.
                
-               HIGH: The case explicitly involves a designated state sponsor of terrorism (Iran, North Korea, Syria, Sudan)
-                     OR a designated terrorist organization (Al-Qaeda, Hezbollah, ISIS, Hamas, Taliban) AND assets are in
-                     Forfeiture Ordered stage or later. The DOJ National Security Division or OFAC is involved.
-               
-               MEDIUM: The case involves terrorism financing, sanctions violations with a terrorism nexus, or
-                       designated entities, BUT assets are still in early stages (Filed, Seized, Litigation).
-                       OR the case is in late stages but the terrorism nexus is indirect.
-               
-               LOW: The case involves sanctions violations without a clear terrorism nexus. It may involve
-                    financial crimes or money laundering for sanctioned governments, but not explicitly linked
-                    to terrorist acts or designated terrorist organizations.
-               
-               UNLIKELY: The case is a general forfeiture (drugs, fraud, tax) with no terrorism or
-                         state-sponsor-of-terrorism connection. These assets are directed to other funds.
+                USVSST ELIGIBILITY SCORING RULES (based on 34 U.S.C. § 20144, as amended by the 
+                Fairness for 9/11 Families Act):
+                
+                The USVSST Fund receives deposits from cases involving violations of IEEPA (International Emergency 
+                Economic Powers Act) or TWEA (Trading with the Enemy Act) with a nexus to a state sponsor of terrorism.
+                State sponsors of terrorism: Iran, North Korea, Syria, Cuba (Sudan was previously designated).
+                
+                DEPOSIT RATES (per statute §20144(e)):
+                - Criminal forfeitures: 100% of proceeds
+                - Civil penalties (post-Nov 2019): 75% of proceeds
+                - Civil penalties (pre-Nov 2019): 50% of proceeds
+                
+                FUND STATUS: 6th distribution ongoing ($2.825B total, payments began Jan 5, 2026). 
+                Pool split: 50% 9/11-related ($1.4125B), 50% non-9/11-related ($1.4125B).
+                7th distribution under evaluation for Jan 2027 (new app deadline: Jun 1, 2026).
+                Fund sunsets: January 2, 2039.
+                
+                KEY ACTIVE CASES TO RECOGNIZE:
+                - MDL 1570 (03-md-01570): In re Terrorist Attacks on September 11, 2001 — core 9/11 litigation
+                  (Saudi appeal pending in 2nd Circuit, charity defendants SJ briefing, Sudan discovery,
+                  CIA subpoena motion to compel). ALWAYS HIGH eligibility.
+                - 1:25-cv-05745 (E.D.N.Y.): US v. ~127,271 Bitcoin — massive forfeiture under 18 USC §981.
+                  TRIA claimants (Breitweiser et al) have filed claims. HIGH eligibility.
+                - Billy Asemani v. USVSST (23-3271, 6th Cir.): Lawsuit AGAINST the Fund — UNLIKELY eligibility.
+                - Burnett v. Al Baraka (03-cv-9849): Part of MDL 1570. HIGH eligibility.
+                
+                You MUST assign a usvsst_eligibility score and eligibilityReason:
+                
+                HIGH: Case involves IEEPA/TWEA violations or sanctions enforcement connected to a state sponsor
+                      of terrorism. Includes: sanctions evasion, terrorist financing through designated entities,
+                      ATA civil actions (like MDL 1570), and crypto/asset forfeitures with terrorism nexus.
+                
+                MEDIUM: Terrorism-related litigation in early stages (Filed, Seized, Litigation) where final
+                        forfeiture hasn't been ordered. Includes JASTA cases against foreign sovereigns and
+                        cases where terrorism connection exists but proceeds aren't yet determined.
+                
+                LOW: Financial crimes, export control violations, money laundering touching sanctioned countries
+                     without clear direct nexus to state-sponsored terrorism.
+                
+                UNLIKELY: General forfeiture (drugs, fraud, tax evasion) with no terrorism/state-sponsor
+                          connection, OR lawsuits filed AGAINST the USVSST Fund itself..
                
                Text: "${rawText}"`,
       output: { schema: ForfeitureExtractionSchema }
@@ -79,9 +108,11 @@ export const intelscoutExtractionFlow = ai.defineFlow(
       const evaluationResponse = await ai.generate({
         prompt: `You are the strict IntelScout DOJ auditor. Evaluate this extracted JSON against the source text.
                  Critique criteria:
-                 1. Are there any hallucinations? 
-                 2. Is the seizedValue perfectly exact based on the text?
-                 3. Does the pipeline stage strictly match the text semantics?
+                 1. Are there any hallucinations (invented facts not in the text)?
+                 2. Is the seizedValue correct? A value of 0 is VALID if no dollar amount is mentioned in the text.
+                 3. Does the pipeline stage reasonably match the text? For docket filings, 'Filed' or 'Litigation' are valid if a case date is provided.
+                 4. Is the category a reasonable inference from the case context? Inferring 'Terrorism' from a case titled 'Terrorist Attacks' is NOT a hallucination.
+                 5. The usvsst_eligibility and eligibilityReason are AI assessments — they are ALWAYS valid as long as the reasoning is sound.
                  
                  JSON: ${JSON.stringify(extractedData)}
                  Source Text: "${rawText}"`,

@@ -99,7 +99,7 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
           <MetricCard title="Total Monitored Assets" value="$0" subtitle="0 Active Cases" />
           <MetricCard title="Projected USVSST Impact" value="$0" subtitle="No pipeline data yet" highlight />
-          <MetricCard title="Data Freshness" value="—" subtitle="Awaiting first scrape" />
+          <MetricCard title="Data Freshness" value="—" subtitle="12 Tier-1 Sources" />
         </div>
         <div className="panel">
           <EmptyState onGovWatchTrigger={onGovWatchTrigger} isScraping={isScraping} />
@@ -115,7 +115,7 @@ export default function Dashboard({ liveCases, isScraping, onGovWatchTrigger }) 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
         <MetricCard title="Total Monitored Assets" value={metrics.totalSeized} subtitle={`${metrics.activeCases} Active Cases`} />
         <MetricCard title="Projected USVSST Impact" value={metrics.projectedUSVSST} subtitle="Based on late-stage pipeline" highlight />
-        <MetricCard title="Data Freshness" value={metrics.lastUpdate} subtitle="15 Tier-1 Sources Parsed" />
+        <MetricCard title="Data Freshness" value={metrics.lastUpdate} subtitle="12 Tier-1 Sources Active" />
       </div>
 
       {/* Pipeline Chart */}
